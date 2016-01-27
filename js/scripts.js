@@ -1,13 +1,37 @@
-function LevelPrices() {}
+function PriceModifier() {}
 
-LevelPrices.prototype.price = function(start, finish) {
-    if (start >= finish) return 0;
-    
-    var next = start + 1;
-    return this.priceSingle(next) + this.price(next, finish);
+PriceModifier.prototype.modify = function(price) {
+    return price / this.modifier();
 };
 
-LevelPrices.prototype.priceSingle = function(level) {
+function Race(name) {
+    this.name = name;
+}
+Race.prototype = Object.create(PriceModifier.prototype)
+
+Race.prototype.modifier = function() {
+    if (this.name == 'iksar') return 0.8;
+    if (this.name == 'troll') return 0.8;
+    if (this.name == 'ogre') return 0.85;
+    if (this.name == 'barbarian') return 0.95;
+    if (this.name == 'halfling') return 1.05;
+    return 1;
+};
+
+function Class(name) {
+    this.name = name;
+}
+Class.prototype = Object.create(PriceModifier.prototype)
+
+Class.prototype.modifier = function() {
+    if (this.name == 'rogue') return 1.09;
+    if (this.name == 'warrior') return 1.1;
+    return 1;
+};
+
+function BasePrices() {}
+
+BasePrices.prototype.price = function(level) {
     var error = "level out of range";
     if (level < 2) throw error;
     
@@ -28,11 +52,25 @@ LevelPrices.prototype.priceSingle = function(level) {
     throw error;
 };
 
-var prices = new LevelPrices;
+function PriceCalculator(prices, race, cls) {
+    this.prices = prices;
+    this.race = race;
+    this.cls = cls;
+}
+
+PriceCalculator.prototype.calculate = function(begin, end) {
+    if (begin >= end) return 0;
+    
+    var next = begin + 1;
+    var price = this.race.modify(this.cls.modify(this.prices.price(next)));
+    return price + this.calculate(next, end);
+};
+
+var calculator = new PriceCalculator(new BasePrices, new Race('iksar'), new Class('monk'));
 
 function rangeDiv(start, finish) {
     var range = '[' + start + '-' + finish + ']';
-    var price = prices.price(start, finish);
+    var price = calculator.calculate(start, finish);
     return '<div>' + range + ' ' + price + '</div>';
 }
 var output = '';
